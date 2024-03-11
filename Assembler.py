@@ -118,7 +118,7 @@ def assemble(input_file):
     return binary_output, None
 
 def main():
-    with open("input.asm", "r") as f:
+    with open("C:\Users\tewar\OneDrive\Desktop\CO Project", "r") as f:
         binary_output, error = assemble(f)
     if error:
         print(error)
