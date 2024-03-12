@@ -1,300 +1,259 @@
-register_encoding={                            # register encoding dictionary
-    "zero":"00000",
-    "ra":"00001",
-    "sp":"00010",
-    "gp":"00011",
-    "tp":"00100",
-    "t0":"00101",
-    "t1":"00110",
-    "t2":"00111",
-    "s0":"01000",
-    "fp":"01000",
-    "s1":"01001",
-    "a0":"01010",
-    "a1":"01011",
-    "a2":"01100",
-    "a3":"01101",
-    "a4":"01110",
-    "a5":"01111",
-    "a6":"10000",
-    "a7":"10001",
-    "s2":"10010",
-    "s3":"10011",
-    "s4":"10100",
-    "s5":"10101",
-    "s6":"10110",
-    "s7":"10111",
-    "s8":"11000",
-    "s9":"11001",
-    "s10":"11010",
-    "s11":"11011",
-    "t3":"11100",
-    "t4":"11101",
-    "t5":"11110",
-    "t6":"11111"
+opcodes = {
+  "add": "0110011",
+  "sub": "0110011",
+  "sll": "0110011",
+  "slt": "0110011",
+  "sltu": "0110011",
+  "xor": "0110011",
+  "srl": "0110011",
+  "or": "0110011",
+  "and": "0110011",
+  "lw": "0000011",
+  "addi": "0010011",
+  "sltiu": "0010011",
+  "jalr": "1100111",
+  "sw": "0100011",
+  "beq": "1100011",
+  "bne": "1100011",
+  "blt": "1100011",
+  "bge": "1100011",
+  "bltu": "1100011",
+  "bgeu": "1100011",
+  "lui": "0110111",
+  "auipc": "0010111",
+  "jal": "1101111",
 }
-r_type_dictionary={                                      # R-type instructions encoding dictionary
-    "opcode":"0110011",
-    "add":["000","0000000"],                             # function-3 and function 7 mapping
-    "sub":["000","0100000"],
-    "sll":["001","0000000"],
-    "slt":["010","0000000"],
-    "sltu":["011","0000000"],
-    "xor":["100","0000000"],
-    "srl":["101","0000000"],
-    "or":["110","0000000"],
-    "and":["111","0000000"],
+
+resistor = {
+  "zero": "00000",
+  "ra": "00001",
+  "sp": "00010",
+  "gp": "00011",
+  "tp": "00100",
+  "t0": "00101",
+  "t1": "00110",
+  "t2": "00111",
+  "s0": "01000",
+  "fp": "01000",
+  "s1": "01001",
+  "a0": "01010",
+  "a1": "01011",
+  "a2": "01100",
+  "a3": "01101",
+  "a4": "01110",
+  "a5": "01111",
+  "a6": "10000",
+  "a7": "10001",
+  "s2": "10010",
+  "s3": "10011",
+  "s4": "10100",
+  "s5": "10101",
+  "s6": "10110",
+  "s7": "10111",
+  "s8": "11000",
+  "s9": "11001",
+  "s10": "11010",
+  "s11": "11011",
+  "t3": "11100",
+  "t4": "11101",
+  "t5": "11110",
+  "t6": "11111"
 }
-i_type_dictionary={                             # I-type instructions encoding dictionary
-    "lw":["0000011","010"],                     # opcode and function 3 mapping
-    "addi":["0010011","000"],
-    "sltiu":["0010011","011"],
-    "jalr":["1100111","000"],
+
+func7={
+    "add": "0000000",
+    "sub": "0100000",
+    "sll": "0000000",
+    "slt": "0000000",
+    "sltu": "0000000",
+    "xor": "0000000",
+    "srl": "0000000",
+    "or": "0000000",
+    "and": "0000000",
 }
-s_type_dictionary = {                            # S-type instructions encoding dictionary
-    "sw":["0100011","010"],                    # opcode and function 3 mapping
+
+func3={
+    "add": "000",
+  "sub": "000",
+  "sll": "001",
+  "slt": "010",
+  "sltu": "011",
+  "xor": "100",
+  "srl": "101",
+  "or": "110",
+  "and": "111",
+  "lw": "010",
+  "addi": "000",
+  "sltiu": "011",
+  "jalr": "000",
+  "sw": "010",
+  "beq": "000",
+  "bne": "001",
+  "blt": "100",
+  "bge": "101",
+  "bltu": "110",
+  "bgeu": "111",
 }
-b_type_dictionary={                            # B-type instructions encoding dictionary
-    "beq":["1100011","000"],                   # opcode and function 3 mapping
-    "bne":["1100011","001"],
-    "blt":["1100011","100"],
-    "bge":["1100011","101"],
-    "bltu":["1100011","110"],
-    "bgeu":["1100011","111"],
-}
-u_type_dictionary={                         # U-type instructions encoding dictionary
-    "lui":"0110111",                         # opcode mapping
-    "auipc":"0010111",
-}
-j_type_dictionary={                        # J-type instructions encoding dictionary
-    "jal":"1101111",                        # opcode mapping
-}
-label_dictionary={}                         # label dictionary for storing labels and their line numbers
-def int_to_bin(num,bits):                    # function for integer to binary conversion with n no of bits
-    bin_of_num=""
-    bin_2_complement=""
-    if(num<0):
-        bin_of_num=str(bin(int(num))[3:])
-        if(bin_of_num[0]=="1"):
-            bin_of_num="0"+bin_of_num
-        
-        
-        for i in range(len(bin_of_num)):
-            if(bin_of_num[i]=="0"):
-                bin_2_complement=bin_2_complement+"1"
-            
-            else:
-                bin_2_complement=bin_2_complement+"0"
-        
-        for i in range(len(bin_2_complement)-1,-(len(bin_2_complement)+1),-1):
-            if(bin_2_complement[i]=="0"):
-                bin_2_complement=bin_2_complement[:i]+"1"+bin_2_complement[i+1:]
-                break
-            else:
-                bin_2_complement=bin_2_complement[:i]+"0"+bin_2_complement[i+1:]
-        
-        bin_of_num=bin_2_complement
-        for i in range(bits-len(bin_of_num)):
-            bin_of_num="1"+bin_of_num
-        
-        
+
+def encode_r_type(a,b,c,d):
+    if b not in resistor or c not in resistor or d not in resistor:
+        raise ValueError("Invalid")
+    x = resistor[b]
+    y = resistor[c]
+    z = resistor[d]
+    m = opcodes[a]
+    l = func3[a]
+    i = func7[a]
+    k = f"{i}{z}{y}{l}{x}{m}"
+    return k
+
+def encode_i_type(op,x,s,imm):
+    if x not in resistor or s not in resistor:
+        raise ValueError("Invalid")
+    a5 = resistor[s]
+    f3 = func3[op]
+    ra = resistor[x]
+    opp = opcodes[op]
+    imm = int(imm) 
+    if imm<0:
+        imm = 2**12 + imm
+    imm = format(int(imm),'012b')
+    x = f"{imm}{a5}{f3}{ra}{opp}"
+    return x
+
+def encode_s_type(a,b,c,d):
+    if b not in resistor or d not in resistor:
+        raise ValueError("Invalid")
+    imm = format(int(c),'012b')
+    imm_11_5 = imm[:7]
+    imm_4_0 = imm[7:]
+    x = resistor[b]
+    y = resistor[d]
+    opp = opcodes[a]
+    x = f"{imm_11_5}{x}{y}{imm_4_0}{opp}"
+    return x
+
+def encode_b_type(instruction, rs1, rs2, imm):
+    if rs1 not in resistor or rs2 not in resistor:
+        raise ValueError("Invalid")
+    imm= int(imm)
+    imm= format(imm, '012b')
+    imm_12= imm[0]
+    imm_10_5= imm[1:7]
+    imm_4_1= imm[7:12]
+    imm_11= imm_12
+    imm_11_5= imm_10_5
+    imm_4_1= imm_4_1
+    x= resistor[rs1]
+    y= resistor[rs2]
+    opp = opcodes[instruction]
+    x = f"{imm_12}{imm_10_5}{y}{x}{imm_4_1}{imm_11_5}{opp}"
+    return x
+
+# def encode_u_type(a,b,c):
+#     if b not in resistor:
+#         raise ValueError("Invalid")
+#     imm = int(c)
+#     if imm<0:
+#         imm=2**32+imm
+#     imm = format(imm,'32b')
+#     x = resistor[b]
+#     opp = opcodes[a]
+#     x = f"{imm[:20]}{x}{opp}"
+#     return x
+def encode_u_type(op,a,imm):
+    if a not in resistor:
+        raise ValueError("Invalid")
+    q = int(imm)
+    if q<0:
+        q = 2**32 + q
+    imm_20 = format((q >> 12) & 0xFFFFF, '020b')
+    imm_12 = format((q >> 12) & 0xFFFFF, '020b')
+    x =  resistor[a]
+    y = opcodes[op]
+    o = f"{imm_20}{x}{y}"
+    return o
+def encode_j_type(op,a,imm):
+    if a not in resistor:
+        raise ValueError("Invalid")
+    q = int(imm)
+    if q<-1048578 or q>=1048576:
+        raise ValueError("address out of range")
+    imm_20 = format((q >> 20) & 0b1, '01b')
+    imm_10_1 = format((q >> 1) & 0x3FF, '010b')
+    imm_11 = format((q >> 11) & 0b1, '01b')
+    imm_19_12 = format((q >> 12) & 0xFF, '08b')
+
+    x =  resistor[a]
+    y = opcodes[op]
+    o = f"{imm_20}{imm_10_1}{imm_11}{imm_19_12}{x}{y}"
+    return o
+
+def encode_z_type(op,x,k,s):
+    if x not in resistor or s not in resistor:
+        raise ValueError("Invalid")
+    a5 = resistor[s]
+    f3 = func3[op]
+    ra = resistor[x]
+    opp = opcodes[op]
+    k = int(k)
+    if k<0:
+        k = 2**12 + k
+    k = format(int(k),'012b')
+    x = f"{k}{a5}{f3}{ra}{opp}"
+    return x
+
+
+def encode_instruction(instruction):
+    if instruction[0] in ["add", "sub", "sll", "slt", "sltu", "xor", "srl", "or", "and"]:
+        return encode_r_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["addi", "sltiu", "jalr", "beq", "bne", "blt", "bge", "bltu", "bgeu"]:
+        return encode_i_type(instruction[0], instruction[1], instruction[2], instruction[3])
     
-    if(num>=0):
-        bin_of_num=str(bin(int(num))[2:])
-        for i in range(bits-len(bin_of_num)):
-            bin_of_num="0"+bin_of_num
-    return bin_of_num
-f=open("./input.txt","r")                       # file handling for taking assembly code as input from file
-assembly_lines=f.readlines()
-for i in range(len(assembly_lines)):
-    assembly_lines[i]=assembly_lines[i].rstrip("\n")
-f.close()
-
-
-
-f=open("./output.txt","w")            # file handling for taking machine code as output in a file
-count=0
-instruction_type={}                        # extracting instruction_type from assembly lines into dictionary woth key as line number
-for i in range(len(assembly_lines)):
-    # extractang instruction type
-    if ":" in assembly_lines[i]:
-        label_dictionary[assembly_lines[i].split(":")[0]]=i
-        instruction_type[i+1]=assembly_lines[i].split(":")[1].lstrip().split(" ")[0]
+    elif instruction[0] in ["lw","sw"]:
+        return encode_z_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["lui", "auipc"]:
+        return encode_u_type(instruction[0], instruction[1], instruction[2])
+    
+    elif instruction[0] in ["jal"]:
+        return encode_j_type(instruction[0], instruction[1], instruction[2])
+    elif instruction[0] in ["slli", "srli", "srai"]:
+        return encode_i_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["sb", "sh", "sw"]:
+        return encode_s_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["beq", "bne", "blt", "bge", "bltu", "bgeu"]:
+        return encode_b_type(instruction[0], instruction[1], instruction[2], instruction[3])
+   
     else:
-        instruction_type[i+1]=assembly_lines[i].lstrip().split(" ")[0]
+        raise ValueError("Invalid instruction")
 
 
-part_2={}                                   # extracting part 2 of each assembly line into dictionary with key as line number
-for i in range(len(assembly_lines)):
-    # extracting part 2
-    if ":" in assembly_lines[i]:
-        part_2[i+1]=assembly_lines[i].split(":")[1].lstrip().split(" ")[1]
-    else:
-        part_2[i+1]=assembly_lines[i].lstrip().split(" ")[1]
-
-
-registers_or_immediate={}                    # extracting registers/immediadate from part 2 into dictionary with key as line number
-for i in range(len(part_2)):
-    # extracting registers/immediadate
-    registers_or_immediate[i+1]=part_2[i+1].split(",")
-
-for i in range(len(assembly_lines)):                      # traversing through assembly lines
-    # for each assembly checking which insgtruction type is it
-    if instruction_type[i+1] in r_type_dictionary.keys():
-        if registers_or_immediate[i+1][2] not in register_encoding.keys() or registers_or_immediate[i+1][1] not in register_encoding.keys() or registers_or_immediate[i+1][0] not in register_encoding.keys():
-            output_line=(f'ERROR: not valid register')
-            if(count!=len(assembly_lines)-1):
-                f.write(output_line+"\n")
-                count=count+1
-            else:
-                f.write(output_line)
-            continue
-
-        output_line=r_type_dictionary[instruction_type[i+1]][1]+register_encoding[registers_or_immediate[i+1][2]]+register_encoding[registers_or_immediate[i+1][1]]+ r_type_dictionary[instruction_type[i+1]][0]+ register_encoding[registers_or_immediate[i+1][0]]+r_type_dictionary["opcode"]
-        if(count!=len(assembly_lines)-1):
-            f.write(output_line+"\n")
-            count=count+1
-        else:
-            f.write(output_line)
-
-    elif instruction_type[i+1] in i_type_dictionary.keys() and ("(" not in part_2[i+1]):
-        immediate_value=int(registers_or_immediate[i+1][2])
-        immediate_binary=int_to_bin(immediate_value,12)
-        if registers_or_immediate[i+1][1] not in register_encoding.keys() or registers_or_immediate[i+1][0] not in register_encoding.keys():
-            output_line=(f'ERROR: not valid register')
-            if(count!=len(assembly_lines)-1):
-                f.write(output_line+"\n")
-                count=count+1
-            else:
-                f.write(output_line)
-            continue
-        output_line=immediate_binary+register_encoding[registers_or_immediate[i+1][1]]+i_type_dictionary[instruction_type[i+1]][1]  + register_encoding[registers_or_immediate[i+1][0]]  + i_type_dictionary[instruction_type[i+1]][0]
-        if(count!=len(assembly_lines)-1):
-            f.write(output_line+"\n")
-            count=count+1
-        else:
-            f.write(output_line)
-
-    elif instruction_type[i+1] in i_type_dictionary.keys() and ("(" in part_2[i+1]):
-        immediate_value=int(registers_or_immediate[i+1][1].split("(")[0])
-        immediate_binary=int_to_bin(immediate_value,12)
-        return_addrress_register=registers_or_immediate[i+1][0]
-        source_address_register=registers_or_immediate[i+1][1].split("(")[1].rstrip(")")
-        if return_addrress_register not in register_encoding.keys() or source_address_register not in register_encoding.keys():
-            output_line=(f'ERROR: not valid register')
-            if(count!=len(assembly_lines)-1):
-                f.write(output_line+"\n")
-                count=count+1
-            else:
-                f.write(output_line)
-            continue
-        output_line=immediate_binary+register_encoding[source_address_register]+i_type_dictionary[instruction_type[i+1]][1]+register_encoding[return_addrress_register]+i_type_dictionary[instruction_type[i+1]][0]
-        if(count!=len(assembly_lines)-1):
-            f.write(output_line+"\n")
-            count=count+1
-        else:
-            f.write(output_line)
-    elif instruction_type[i+1] in s_type_dictionary.keys():
-        data_register=registers_or_immediate[i+1][0]
-        source_address_register=registers_or_immediate[i+1][1].split("(")[1].rstrip(")")
-        immediate_offset=int(registers_or_immediate[i+1][1].split("(")[0])
-        binary_immediate_offset=int_to_bin(immediate_offset,12)
-
-        if data_register not in register_encoding.keys() or source_address_register not in register_encoding.keys():
-            output_line=(f'ERROR: not valid register')
-            if(count!=len(assembly_lines)-1):
-                f.write(output_line+"\n")
-                count=count+1
-            else:
-                f.write(output_line)
-            continue
-        output_line=binary_immediate_offset[0:7]+register_encoding[data_register]+register_encoding[source_address_register]+s_type_dictionary[instruction_type[i+1]][1]+binary_immediate_offset[7:12]+s_type_dictionary[instruction_type[i+1]][0]
-        if count!=len(assembly_lines)-1:
-            f.write(output_line+"\n")
-            count=count+1
-        else:
-            f.write(output_line)
-    elif instruction_type[i+1] in b_type_dictionary.keys():
-        if registers_or_immediate[i+1][2] not in label_dictionary.keys():
-            label_immidiate=int(registers_or_immediate[i+1][2])
-            label_immidiate_bin=int_to_bin(label_immidiate,13)
-            if registers_or_immediate[i+1][0] not in register_encoding.keys() or registers_or_immediate[i+1][1] not in register_encoding.keys():
-                output_line=(f'ERROR: not valid register')
-                if count!=len(assembly_lines)-1 :
-                    f.write(output_line+"\n")
-                    count=count+1
-                else:
-                    f.write(output_line)
-                continue
-            output_line=label_immidiate_bin[0]+label_immidiate_bin[2:8]+register_encoding[registers_or_immediate[i+1][1]]+register_encoding[registers_or_immediate[i+1][0]]+b_type_dictionary[instruction_type[i+1]][1]+label_immidiate_bin[8:12]+label_immidiate_bin[1]+b_type_dictionary[instruction_type[i+1]][0]
-            if count!=len(assembly_lines)-1:
-                f.write(output_line+"\n")
-                count=count+1
-            else:
-                f.write(output_line)
-        elif registers_or_immediate[i+1][2] in label_dictionary.keys():
-            label_lineno=label_dictionary[registers_or_immediate[i+1][2]]
-            label_immidiate=int_to_bin((i-label_lineno)*4,13)
-            if registers_or_immediate[i+1][0] not in register_encoding.keys() or registers_or_immediate[i+1][1] not in register_encoding.keys():
-                output_line=(f'ERROR: not valid register')
-                if count!=len(assembly_lines)-1:
-                    f.write(output_line+"\n")
-                    count=count+1
-                else:
-                    f.write(output_line)
-                continue
-            output_line=label_immidiate[0]+label_immidiate[2:8]+register_encoding[registers_or_immediate[i+1][1]]+register_encoding[registers_or_immediate[i+1][0]]+b_type_dictionary[instruction_type[i+1]][1]+label_immidiate[8:12]+label_immidiate[1]+b_type_dictionary[instruction_type[i+1]][0]
-            if count!=len(assembly_lines)-1:
-                f.write(output_line+"\n")
-                count=count+ 1
-            else:
-                f.write(output_line)
-    elif instruction_type[i+1] in u_type_dictionary.keys():
-        immediate_value=int(registers_or_immediate[i+1][1])
-        immediate_binary=int_to_bin(immediate_value,32)
-        if registers_or_immediate[i+1][0] not in register_encoding.keys():
-            output_line=(f'ERROR: not valid register')
-            if count!=len(assembly_lines)-1:
-                f.write(output_line+"\n")
-                count=count+1
-            else:
-                f.write(output_line)
-            continue
+def gg(f):
+    labels = {}
+    line_number = 0
+    l=[]
+    for line in f:
+        line = line.replace('(', ' ')
         
-        output_line=immediate_binary[0:20]+register_encoding[registers_or_immediate[i+1][0]]+ u_type_dictionary[instruction_type[i+1]]
-        if count!=len(assembly_lines)-1:
-            f.write(output_line+"\n")
-            count=count+1
-        else:
-            f.write(output_line)
+        line = line.replace(')', '')
         
-    elif instruction_type[i+1] in j_type_dictionary.keys():
-        label_immidiate=int(registers_or_immediate[i+1][1])
-        label_immidiate_bin =int_to_bin(label_immidiate,21)
-        if registers_or_immediate[i+1][0] not in register_encoding.keys():
-            output_line=(f'ERROR: not valid register')
-            if count!=len(assembly_lines)-1:
-                f.write(output_line+"\n")
-                count=count+ 1
-            else:
-                f.write(output_line)
-            continue
+        instruction_list = line.replace(',', ' ').split()
         
-        output_line=label_immidiate_bin[0]+label_immidiate_bin[10:20] +label_immidiate_bin[9]+label_immidiate_bin[1:9]+register_encoding[registers_or_immediate[i+1][0]]+j_type_dictionary[instruction_type[i+1]]
-        if count!=len(assembly_lines)-1:
-            f.write(output_line+"\n")
-            count=count+ 1
+        print(instruction_list)
+        l.append(encode_instruction(instruction_list))
+        if line[-1] == ":":
+            labels[line[:-1]] = line_number
         else:
-            f.write(output_line)
+            line_number += 1
+    return l
 
 
-    else:
-        # for wrong instructions types
-        output_line=(f'ERROR: {instruction_type[i+1]} is not a valid instruction at line {i+1}')
-        if count!=len(assembly_lines)-1:
-            f.write(output_line+"\n")
-            count=count+ 1
-        else:
-            f.write(output_line)
 
-f.close()
+def main():
+    with open("/Users/adityayadav/Desktop/test1.txt", "r") as f:
+        binary_output = gg(f)
+    
+    with open("/Users/adityayadav/Desktop/abc.txt", "w") as f:
+        for binary in binary_output:
+            f.write(binary + "\n")
+main()
