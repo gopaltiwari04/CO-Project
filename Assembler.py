@@ -1,1097 +1,296 @@
-import os
-import re
 import sys
+# input = sys.argv[-2]
+# output = sys.argv[-1]
+# inputfile = open(input, "r")
+# outputfile = open(output, "w")
 
-registers = {'zero': '00000', 'ra': '00001', 'sp': '00010', 'gp': '00011', 'tp': '00100', 't0': '00101', 't1': '00110', 't2': '00111',
-             's0': '01000', 'fp': '01000', 's1': '01001', 'a0': '01010', 'a1': '01011', 'a2': '01100', 'a3': '01101', 
-             'a4': '01110', 'a5': '01111', 'a6': '10000', 'a7': '10001', 's2': '10010', 's3': '10011', 's4': '10100', 
-             's5': '10101', 's6': '10110', 's7': '10111', 's8': '11000', 's9': '11001', 's10': '11010', 's11': '11011', 
-             't3': '11100', 't4': '11101', 't5': '11110', 't6': '11111'
+
+opcodes = {
+  "add": "0110011",
+  "sub": "0110011",
+  "sll": "0110011",
+  "slt": "0110011",
+  "sltu": "0110011",
+  "xor": "0110011",
+  "srl": "0110011",
+  "or": "0110011",
+  "and": "0110011",
+  "lw": "0000011",
+  "addi": "0010011",
+  "sltiu": "0010011",
+  "jalr": "1100111",
+  "sw": "0100011",
+  "beq": "1100011",
+  "bne": "1100011",
+  "blt": "1100011",
+  "bge": "1100011",
+  "bltu": "1100011",
+  "bgeu": "1100011",
+  "lui": "0110111",
+  "auipc": "0010111",
+  "jal": "1101111",
 }
 
-zero = '00000000000000000000000000000000'
-ra = '00000000000000000000000000000000'
-sp = '00000000000000000000000000000000'
-gp = '00000000000000000000000000000000'
-tp = '00000000000000000000000000000000'
-t0 = '00000000000000000000000000000000'
-t1 = '00000000000000000000000000000000'
-t2 = '00000000000000000000000000000000'
-s0 = '00000000000000000000000000000000'
-fp = '00000000000000000000000000000000'
-s1 = '00000000000000000000000000000000'
-a0 = '00000000000000000000000000000000'
-a1 = '00000000000000000000000000000000'
-a2, a3, a4, a5, a6, a7 = '00000000000000000000000000000000', '00000000000000000000000000000000', '00000000000000000000000000000000', '00000000000000000000000000000000', '00000000000000000000000000000000', '00000000000000000000000000000000'
-s2 = '00000000000000000000000000000000'
-s3 = '00000000000000000000000000000000'
-s4 = '00000000000000000000000000000000'
-s5 = '00000000000000000000000000000000'
-s6 = '00000000000000000000000000000000'
-s7 = '00000000000000000000000000000000'
-s8 = '00000000000000000000000000000000'
-s9 = '00000000000000000000000000000000'
-s10 = '00000000000000000000000000000000'
-s11 = '00000000000000000000000000000000'
-t3, t4, t5, t6 = '00000000000000000000000000000000', '00000000000000000000000000000000', '00000000000000000000000000000000', '00000000000000000000000000000000'
+resistor = {
+  "zero": "00000",
+  "ra": "00001",
+  "sp": "00010",
+  "gp": "00011",
+  "tp": "00100",
+  "t0": "00101",
+  "t1": "00110",
+  "t2": "00111",
+  "s0": "01000",
+  "fp": "01000",
+  "s1": "01001",
+  "a0": "01010",
+  "a1": "01011",
+  "a2": "01100",
+  "a3": "01101",
+  "a4": "01110",
+  "a5": "01111",
+  "a6": "10000",
+  "a7": "10001",
+  "s2": "10010",
+  "s3": "10011",
+  "s4": "10100",
+  "s5": "10101",
+  "s6": "10110",
+  "s7": "10111",
+  "s8": "11000",
+  "s9": "11001",
+  "s10": "11010",
+  "s11": "11011",
+  "t3": "11100",
+  "t4": "11101",
+  "t5": "11110",
+  "t6": "11111"
+}
 
-global output 
-output = open('output.txt', 'w+')
+func7={
+    "add": "0000000",
+    "sub": "0100000",
+    "sll": "0000000",
+    "slt": "0000000",
+    "sltu": "0000000",
+    "xor": "0000000",
+    "srl": "0000000",
+    "or": "0000000",
+    "and": "0000000",
+}
 
-labels = {}
+func3={
+    "add": "000",
+  "sub": "000",
+  "sll": "001",
+  "slt": "010",
+  "sltu": "011",
+  "xor": "100",
+  "srl": "101",
+  "or": "110",
+  "and": "111",
+  "lw": "010",
+  "addi": "000",
+  "sltiu": "011",
+  "jalr": "000",
+  "sw": "010",
+  "beq": "000",
+  "bne": "001",
+  "blt": "100",
+  "bge": "101",
+  "bltu": "110",
+  "bgeu": "111",
+}
 
-def btd(num, type='unsigned'):
-    if type == 'signed':
-        if num[0] == '1':
-            s = 0
-            s = s + (-2)**(len(num)-1)
-            for i in range(1, len(num)):
-                s = s + int(num[i])(2*(len(num)-i-1))
-            return s
-        if num[0] == '0':
-            s = 0
-            for i in range(1, len(num)):
-                s = s + int(num[i])(2*(len(num)-i-1))
-            return s
+def encode_r_type(a,b,c,d):
+    if b not in resistor or c not in resistor or d not in resistor:
+        raise ValueError("Invalid")
+    x = resistor[b]
+    y = resistor[c]
+    z = resistor[d]
+    m = opcodes[a]
+    l = func3[a]
+    i = func7[a]
+    k = f"{i}{z}{y}{l}{x}{m}"
+    return k
+
+def encode_i_type(op,x,s,imm):
+    if x not in resistor or s not in resistor:
+        raise ValueError("Invalid")
+    a5 = resistor[s]
+    f3 = func3[op]
+    ra = resistor[x]
+    opp = opcodes[op]
+    imm = int(imm) 
+    if imm<0:
+        imm = 2**12 + imm
+    imm = format(int(imm),'012b')
+    x = f"{imm}{a5}{f3}{ra}{opp}"
+    return x
+
+def encode_s_type(a,b,c,d):
+    if b not in resistor or d not in resistor:
+        raise ValueError("Invalid")
+    imm = format(int(c),'012b')
+    imm_11_5 = imm[:7]
+    imm_4_0 = imm[7:]
+    x = resistor[b]
+    y = resistor[d]
+    opp = opcodes[a]
+    x = f"{imm_11_5}{x}{y}{imm_4_0}{opp}"
+    return x
+
+def encode_b_type(instruction, rs1, rs2, imm):
+    if rs1 not in resistor or rs2 not in resistor:
+        raise ValueError("Invalid")
+    imm= int(imm)
+    imm= format(imm, '012b')
+    imm_12= imm[0]
+    imm_10_5= imm[1:7]
+    imm_4_1= imm[7:12]
+    imm_11= imm_12
+    imm_11_5= imm_10_5
+    imm_4_1= imm_4_1
+    x= resistor[rs1]
+    y= resistor[rs2]
+    opp = opcodes[instruction]
+    x = f"{imm_12}{imm_10_5}{y}{x}{imm_4_1}{imm_11_5}{opp}"
+    return x
+
+# def encode_u_type(a,b,c):
+#     if b not in resistor:
+#         raise ValueError("Invalid")
+#     imm = int(c)
+#     if imm<0:
+#         imm=2**32+imm
+#     imm = format(imm,'32b')
+#     x = resistor[b]
+#     opp = opcodes[a]
+#     x = f"{imm[:20]}{x}{opp}"
+#     return x
+def encode_u_type(op,a,imm):
+    if a not in resistor:
+        raise ValueError("Invalid")
+    q = int(imm)
+    if q<0:
+        q = 2**32 + q
+    imm_20 = format((q >> 12) & 0xFFFFF, '020b')
+    imm_12 = format((q >> 12) & 0xFFFFF, '020b')
+    x =  resistor[a]
+    y = opcodes[op]
+    o = f"{imm_20}{x}{y}"
+    return o
+def encode_j_type(op,a,imm):
+    if a not in resistor:
+        raise ValueError("Invalid")
+    q = int(imm)
+    if q<-1048578 or q>=1048576:
+        raise ValueError("address out of range")
+    imm_20 = format((q >> 20) & 0b1, '01b')
+    imm_10_1 = format((q >> 1) & 0x3FF, '010b')
+    imm_11 = format((q >> 11) & 0b1, '01b')
+    imm_19_12 = format((q >> 12) & 0xFF, '08b')
+
+    x =  resistor[a]
+    y = opcodes[op]
+    o = f"{imm_20}{imm_10_1}{imm_11}{imm_19_12}{x}{y}"
+    return o
+
+def encode_z_type(op,x,k,s):
+    if x not in resistor or s not in resistor:
+        raise ValueError("Invalid")
+    a5 = resistor[s]
+    f3 = func3[op]
+    ra = resistor[x]
+    opp = opcodes[op]
+    k = int(k)
+    if k<0:
+        k = 2**12 + k
+    k = format(int(k),'012b')
+    x = f"{k}{a5}{f3}{ra}{opp}"
+    return x
+
+
+def encode_instruction(instruction):
+    if instruction[0] in ["add", "sub", "sll", "slt", "sltu", "xor", "srl", "or", "and"]:
+        return encode_r_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["addi", "sltiu", "jalr", "beq", "bne", "blt", "bge", "bltu", "bgeu"]:
+        return encode_i_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    
+    elif instruction[0] in ["lw","sw"]:
+        return encode_z_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["lui", "auipc"]:
+        return encode_u_type(instruction[0], instruction[1], instruction[2])
+    
+    elif instruction[0] in ["jal"]:
+        return encode_j_type(instruction[0], instruction[1], instruction[2])
+    elif instruction[0] in ["slli", "srli", "srai"]:
+        return encode_i_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["sb", "sh", "sw"]:
+        return encode_s_type(instruction[0], instruction[1], instruction[2], instruction[3])
+    elif instruction[0] in ["beq", "bne", "blt", "bge", "bltu", "bgeu"]:
+        return encode_b_type(instruction[0], instruction[1], instruction[2], instruction[3])
+   
     else:
-        s = 0
-        for i in range(0, len(num)):
-            s = s + int(num[i])(2*(len(num)-i-1))
-            return s
-        
-def se(digit, num, size=32):
-    if len(bin(num)[2:]) > size:
-        raise OverflowError('Error: Illegal immediate overflow')
-    return digit*(size-len(bin(num)[2:])) + bin(num)[2:]
+        raise ValueError("Invalid instruction")
 
-def dtb(num, type='unsigned', size=32):
-    if type == 'signed':
-        if num < 0:
-            number = '0' + bin(abs(num))[2:]
-            new = ''
-            for i in number:
-                if i == '0':
-                    new = new + '1'
-                else:
-                    new = new + '0'
-            onescomplement = int(new, 2)
-            twoscomplement = onescomplement + 1
-            return se('1', twoscomplement, size)
-        if num >= 0:
-            twoscomplement = num
-            return se('0', twoscomplement, size)
-    if type == 'unsigned':
-        nums = num
-        return se('0', nums, size)
-    
-def contains_integers(input_string):
-    pattern = r'^[+-]?\d+$'
-    return bool(re.match(pattern, input_string))
 
-class assembler:
-    def remove_special_characters(self, lines):
-        self.new_lines = []
-        for i in lines:
-            j = re.sub(r'\n', '', i)
-            k = re.sub(r'//.*', '', j)
-            l = re.sub(r'\w+:', '', k)
-            self.new_lines.append(l.strip())       
-            if re.match(r'\b\w+:', k):
-                labels[re.search(r'\b\w+:', k).group()] = lines.index(i)
-        self.new_line = list(filter(lambda x: x != '', self.new_lines))
-        return self.new_line
-                
-    def display(self):
-        print(self.new_line)
-        print(labels)
+def gg(f):
+    labels = {}
+    line_number = 0
+    l=[]
+    for line in f:
+        line = line.replace('(', ' ')
         
-    def execution(self, line):
-        global output
-        if line == 'beq zero,zero,0':
-            globals()['pc'] = len(globals()['new_lines'])*4
-            imm = dtb(0, 'signed')
-            output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'000'+imm[27:31]+imm[20]+'1100011\n')
-            return
-        elif line.split()[0] == 'jal':
-            self.jal(line)
-        elif line.split()[0] == 'addi':
-            self.addi(line)
-        elif line.split()[0] == 'add':
-            self.add(line)
-        elif line.split()[0] =='sub':
-            self.sub(line)
-        elif line.split()[0] == 'slt':
-            self.slt(line)
-        elif line.split()[0] == 'sltu':
-            self.sltu(line)
-        elif line.split()[0] == 'sll':
-            self.sll(line)
-        elif line.split()[0] == 'srl':
-            self.srl(line)
-        elif line.split()[0] == 'or':
-            self.OR(line)
-        elif line.split()[0] == 'and':
-            self.AND(line)
-        elif line.split()[0] == 'xor':
-            self.xor(line)
-        elif line.split()[0] == 'lw':
-            self.lw(line)
-        elif line.split()[0] == 'sltiu':
-            self.sltiu(line)
-        elif line.split()[0] == 'jalr':
-            self.jalr(line)
-        elif line.split()[0] == 'sw':
-            self.sw(line)
-        elif line.split()[0] == 'beq':
-            self.beq(line)
-        elif line.split()[0] == 'bne':
-            self.bne(line)
-        elif line.split()[0] == 'bge':
-            self.bge(line)
-        elif line.split()[0] == 'bgeu':
-            self.bgeu(line)
-        elif line.split()[0] == 'blt':
-            self.blt(line)
-        elif line.split()[0] == 'bltu':
-            self.bltu(line)
-        elif line.split()[0] == 'auipc':
-            self.auipc(line)
-        elif line.split()[0] == 'lui':
-            self.lui(line)
-        elif line.split()[0] == 'jal':
-            self.jal(line)
+        line = line.replace(')', '')
+        
+        instruction_list = line.replace(',', ' ').split()
+        
+        print(instruction_list)
+        l.append(encode_instruction(instruction_list))
+        if line[-1] == ":":
+            labels[line[:-1]] = line_number
         else:
-            print('Error: Invalid instruction')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        
-    def add(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'000'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
+            line_number += 1
+    return l
+
+
+
+# def main():
+#     with open("/Users/adityayadav/Desktop/test1.txt", "r") as f:
+#         binary_output = gg(f)
+    
+#     with open("/Users/adityayadav/Desktop/abc.txt", "w") as f:
+#         for binary in binary_output:
+#             f.write(binary + "\n")
+# main()
+
+
+# if __name__ == "__main__":
+#     input_file = sys.argv[1]
+#     output_file = sys.argv[2]
+    
+#     with open(input_file, "r") as f:
+#         binary_output = gg(f)
+    
+#     with open(output_file, "w") as f:
+#         for binary in binary_output:
+#             f.write(binary + "\n")
             
-    def sub(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            output.write('0100000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'000'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-    
-    def slt(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'010'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-    
-    def sltu(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'011'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-            
-    def xor(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'100'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-        
-    def sll(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'001'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-    
-    def srl(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'101'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-    
-    def OR(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'110'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-            
-    def AND(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals() or line.split()[1].split(',')[2] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals() and line.split()[1].split(',')[2] in globals():
-            output.write('0000000'+registers[line.split()[1].split(',')[2]]+registers[line.split()[1].split(',')[1]]+'111'+registers[line.split()[1].split(',')[0]]+'0110011\n')
-            globals()['pc'] += 4
-            
-    def addi(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            try:
-                imm = dtb(int(line.split()[1].split(',')[2]), 'signed', 12)
-                output.write(dtb(int(line.split()[1].split(',')[2]), 'signed', 12)+registers[line.split()[1].split(',')[1]]+'000'+registers[line.split()[1].split(',')[0]]+'0010011\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Invalid immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-            
-    def lw(self, line):
-        global output
-        if '(' not in line or ')' not in line:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if len(line.split()[1].split(',')) != 2:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        src_reg = re.findall(r'\b\w+\s*,\s*(-?\d+)\((\w+)\)', line)[0][1]
-        imm = re.findall(r'\b\w+\s*,\s*(-?\d+)\((\w+)\)', line)[0][0]
-        if line.split()[1].split(',')[0] not in globals() or src_reg not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(imm):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and src_reg in globals():
-            try:
-                immediate = dtb(int(imm), 'signed', 12)
-                output.write(immediate+registers[src_reg]+'010'+registers[line.split()[1].split(',')[0]]+'0000011\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Illegal immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-    
-    def sltiu(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            try:
-                immediate = dtb(int(line.split()[1].split(',')[2]), 'unsigned', 12)
-                output.write(immediate+registers[line.split()[1].split(',')[1]]+'011'+registers[line.split()[1].split(',')[0]]+'0010011\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Illegal immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-    
-    def jalr(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            try:
-                immediate = dtb(int(line.split()[1].split(',')[2]), 'signed', 12)
-                output.write(immediate+registers[line.split()[1].split(',')[1]]+'000'+registers[line.split()[1].split(',')[0]]+'1100111\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Illegal immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-    
-    def sw(self, line):
-        global output
-        if '(' not in line or ')' not in line:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if len(line.split()[1].split(',')) != 2:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        src_reg = re.findall(r'\b\w+\s*,\s*(-?\d+)\((\w+)\)', line)[0][1]
-        imm = re.findall(r'\b\w+\s*,\s*(-?\d+)\((\w+)\)', line)[0][0]
-        if src_reg not in globals() or line.split()[1].split(',')[0] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(imm):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return            
-        if line.split()[1].split(',')[0] in globals() and src_reg in globals():
-            try:
-                immediate = dtb(int(imm), 'signed', 12)
-                output.write(immediate[:7]+registers[line.split()[1].split(',')[0]]+registers[src_reg]+'010'+immediate[7:]+'0100011\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Illegal immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-    
-    def beq(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[2]+':' not in globals()['labels'] and not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            if contains_integers(line.split()[1].split(',')[2]):
-                try:
-                    imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'000'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[2].isalnum():
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[2]+':']*4-(globals()['pc']+4),'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'000'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-    
-    def bne(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[2]+':' not in globals()['labels'] and not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():             #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if contains_integers(line.split()[1].split(',')[2]):
-                try:
-                    imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                    
-                    output.write(imm[0]+imm[2:8]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'001'+imm[8:]+imm[1]+'1100011\n')
-                    globals()['pc'] += 4
-                    
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[2].isalnum():
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[2]+':']*4-(globals()['pc']+4), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'001'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-    
-    def bge(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() and line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[2]+':' not in globals()['labels'] and not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            if contains_integers(line.split()[1].split(',')[2]):
-                try:
-                    imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'111'+imm[27:31]+imm[20]+'1100011\n')                    
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[2].isalnum():
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[2]+':']*4-(globals()['pc']+4), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'101'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-                
-    def bgeu(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[2]+':' not in globals()['labels'] and not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return 
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            if contains_integers(line.split()[1].split(',')[2]):
-                try:
-                    imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'111'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[2].isalnum():
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[2]+':']*4-(globals()['pc']+4), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'111'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-    
-    def blt(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[2]+':' not in globals()['labels'] and not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            if contains_integers(line.split()[1].split(',')[2]):
-                if btd(globals()[line.split()[1].split(',')[0]], 'signed') < btd(globals()[line.split()[1].split(',')[1]], 'signed'):
-                    try:
-                        imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                        
-                        output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'100'+imm[27:31]+imm[20]+'1100011\n')
-                        globals()['pc'] += 4
-                        return
-                    except OverflowError:
-                        print('Error: Illegal immediate length')
-                        os.remove('output.txt')
-                        output.close()
-                        output = open('output.txt', 'w+')
-                        output.close()
-                        globals()['pc'] = len(globals()['new_lines'])*4
-                        return
-                try:
-                    imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'100'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    os.remove('output.txt')
-                    output.close()
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[2].isalnum():
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[2]+':']*4-(globals()['pc']+4),'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'100'+imm[27:31]+imm[20]+'1100011\n')                    
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-    
-    def bltu(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 3:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals() or line.split()[1].split(',')[1] not in globals():
-            print('Error: No such register or invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[2]+':' not in globals()['labels'] and not contains_integers(line.split()[1].split(',')[2]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals() and line.split()[1].split(',')[1] in globals():
-            if contains_integers(line.split()[1].split(',')[2]):
-                try:
-                    imm = dtb(int(line.split()[1].split(',')[2]), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'110'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[2].isalnum():
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[2]+':']*4-(globals()['pc']+4), 'signed')
-                    
-                    output.write(imm[19]+imm[21:27]+registers[line.split()[1].split(',')[1]]+registers[line.split()[1].split(',')[0]]+'110'+imm[27:31]+imm[20]+'1100011\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-    
-    def auipc(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 2:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(line.split()[1].split(',')[1]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals():
-            imm = int(line.split()[1].split(',')[1])
-            try:
-                immediate = dtb(imm, 'signed')
-                
-                output.write(immediate[:20]+registers[line.split()[1].split(',')[0]]+'0010111\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Illegal immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-    
-    def lui(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 2:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(line.split()[1].split(',')[1]):
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals():
-            imm = int(line.split()[1].split(',')[1])
-            try:
-                immediate = dtb(imm, 'signed')
-                output.write(immediate[0:20]+registers[line.split()[1].split(',')[0]]+'0110111\n')
-                globals()['pc'] += 4
-            except OverflowError:
-                print('Error: Illegal immediate length')
-                output.close()
-                os.remove('output.txt')
-                output = open('output.txt', 'w+')
-                output.close()
-                globals()['pc'] = len(globals()['new_lines'])*4
-                return
-    
-    def jal(self, line):
-        global output
-        if len(line.split()[1].split(',')) != 2:
-            print('Error: Syntax error')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] not in globals():
-            print('Error: No such register')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if not contains_integers(line.split()[1].split(',')[1]) and line.split()[1].split(',')[1]+':' not in globals()['labels']:
-            print('Error: Invalid immediate')
-            output.close()
-            os.remove('output.txt')
-            output = open('output.txt', 'w+')
-            output.close()
-            globals()['pc'] = len(globals()['new_lines'])*4
-            return
-        if line.split()[1].split(',')[0] in globals():
-            if contains_integers(line.split()[1].split(',')[1]):
-                imm = int(line.split()[1].split(',')[1])
-                try:
-                    imm1 = dtb(imm, 'signed')
-                    output.write(imm1[11]+imm1[21:31]+imm1[20]+imm1[12:20]+registers[line.split()[1].split(',')[0]]+'1101111\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-            elif line.split()[1].split(',')[1].isalnum():
-                
-                try:
-                    imm = dtb(labels[line.split()[1].split(',')[1]+':']*4-(globals()['pc']+4), 'signed')
-                    
-                    output.write(imm[11]+imm[21:31]+imm[20]+imm[12:20]+registers[line.split()[1].split(',')[0]]+'1101111\n')
-                    globals()['pc'] += 4
-                except OverflowError:
-                    print('Error: Illegal immediate length')
-                    output.close()
-                    os.remove('output.txt')
-                    output = open('output.txt', 'w+')
-                    output.close()
-                    globals()['pc'] = len(globals()['new_lines'])*4
-                    return
-                
+def process_instructions(file_path):
+    with open(file_path, "r") as f:
+        binary_output = gg(f)
+    return binary_output
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python Assembler.py input_file_path output_file_path")
+        sys.exit(1)
 
-with open('text.txt', 'r') as f:
-    lines = f.readlines()
+    input_file_path = sys.argv[1]
+    output_file_path = sys.argv[2]
 
-x = assembler()
-new_lines = x.remove_special_characters(lines)
+    binary_output = process_instructions(input_file_path)
 
-
-
-pc = 0
-
-
-if 'beq zero,zero,0' not in new_lines:
-    print('Error: Missing virtual halt')
-    globals()['pc'] = len(globals()['new_lines'])*4
-    
-for label in labels:
-    if label.replace(' ', '') != label:
-        print('Error: Invalid labels')
-        globals()['pc'] = len(globals()['new_lines'])*4
-
-while pc//4 < len(new_lines):
-    x.execution(new_lines[int(pc//4)])
-    
-output.close()
+    with open(output_file_path, "w") as f:
+        for binary in binary_output:
+            f.write(binary + "\n")
