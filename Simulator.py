@@ -160,34 +160,7 @@ class solution:
         elif opcode == '0100011' and val[16:19] == '010':
             self.sw(val)
 
-        '''if val[-7:] == '0110011' and val[:7] == '0100000' and val[17:20] == '000':
-            self.sub(val)
-        elif val[-7:] == '0110011' and val[17:20] == '000':
-            self.add(val)
-        elif val[-7:] == '0110011' and val[17:20] == '001':
-            self.sll(val)
-        elif val[-7:] == '0110011' and val[17:20] == '010':
-            self.slt(val)
-        elif val[-7:] == '0110011' and val[17:20] == '011':
-            self.sltu(val)
-        elif val[-7:] == '0110011' and val[17:20] == '100':
-            self.xor(val)
-        elif val[-7:] == '0110011' and val[17:20] == '101':
-            self.srl(val)
-        elif val[-7:] == '0110011' and val[17:20] == '110':
-            self.OR(val)
-        elif val[-7:] == '0110011' and val[17:20] == '111':
-            self.AND(val)
-        elif val[-7:] == '0000011' and val[17:20] == '010':
-            self.lw(val)
-        elif val[-7:] == '0010011' and val[17:20] == '000':
-            self.addi(val)
-        elif val[-7:] == '0010011' and val[17:20] == '011':
-            self.sltiu(val)
-        elif val[-7:] == '1100111' and val[17:20] == '000':
-            self.jalr(val)
-        elif val[-7:] == '0100011' and val[16:19] == '010':
-            self.sw(val)'''
+      
         
     
     
