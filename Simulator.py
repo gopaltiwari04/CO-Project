@@ -191,10 +191,7 @@ class solution:
         
     
     
-    #def add(self, val):
-     #   globals()['pc'] += 4
-      #  globals()[register[val[20:25]]] = dtb(btd(globals()[register[val[12:17]]], 'signed') + btd(globals()[register[val[7:12]]], 'signed'), 'signed')
-       # output_f.write(str(globals()['pc'])+' '+globals()['zero']+' '+globals()['ra']+' '+globals()['sp']+' '+globals()['gp']+' '+globals()['tp']+' '+globals()['t0']+' '+globals()['t1']+' '+globals()['t2']+' '+globals()['s0']+' '+globals()['s1']+' '+globals()['a0']+' '+globals()['a1']+' '+globals()['a2']+' '+globals()['a3']+' '+globals()['a4']+' '+globals()['a5']+' '+globals()['a6']+' '+globals()['a7']+' '+globals()['s2']+' '+globals()['s3']+' '+globals()['s4']+' '+globals()['s5']+' '+globals()['s6']+' '+globals()['s7']+' '+globals()['s8']+' '+globals()['s9']+' '+globals()['s10']+' '+globals()['s11']+' '+globals()['t3']+' '+globals()['t4']+' '+globals()['t5']+' '+globals()['t6'])
+    
     def add(self, val):
         global pc, output_f
     
@@ -212,11 +209,6 @@ class solution:
             f"{s5} {s6} {s7} {s8} {s9} {s10} {s11} {t3} {t4} {t5} {t6}\n"
         )
     
-    '''def sub(self, val):
-        globals()['pc'] += 4
-        globals()[register[val[20:25]]] = dtb(btd(globals()[register[val[12:17]]], 'signed') - btd(globals()[register[val[7:12]]], 'signed'), 'signed')
-        output_f.write(str(globals()['pc'])+' '+globals()['zero']+' '+globals()['ra']+' '+globals()['sp']+' '+globals()['gp']+' '+globals()['tp']+' '+globals()['t0']+' '+globals()['t1']+' '+globals()['t2']+' '+globals()['s0']+' '+globals()['s1']+' '+globals()['a0']+' '+globals()['a1']+' '+globals()['a2']+' '+globals()['a3']+' '+globals()['a4']+' '+globals()['a5']+' '+globals()['a6']+' '+globals()['a7']+' '+globals()['s2']+' '+globals()['s3']+' '+globals()['s4']+' '+globals()['s5']+' '+globals()['s6']+' '+globals()['s7']+' '+globals()['s8']+' '+globals()['s9']+' '+globals()['s10']+' '+globals()['s11']+' '+globals()['t3']+' '+globals()['t4']+' '+globals()['t5']+' '+globals()['t6'])
-      '''
     def sub(self, val):
         global pc, output_f
         pc += 4
